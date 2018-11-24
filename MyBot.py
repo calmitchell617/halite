@@ -24,6 +24,7 @@ game = hlt.Game()
 # At this point "game" variable is populated with initial map data.
 # This is a good place to do computationally expensive start-up pre-processing.
 # As soon as you call "ready" function below, the 2 second per turn timer will start.
+ship_dict = {}
 game.ready("MyPythonBot")
 
 # Now that your bot is initialized, save a message to yourself in the log file with some important information.
@@ -45,14 +46,52 @@ while True:
     command_queue = []
 
     for ship in me.get_ships():
-        # For each of your ships, move randomly if the ship is on a low halite location or the ship is full.
-        #   Else, collect halite.
-        if game_map[ship.position].halite_amount < constants.MAX_HALITE / 10 or ship.is_full:
+
+        logging.info(ship_dict)
+
+        # If ship doesn't have a status, it must be new. Put it in the ship_dict
+        if ship.id not in ship_dict:
+            ship_dict[ship.id] = None
+
+        # If ship's status is returning, keep going (unless on shipyard)
+        if ship_dict[ship.id] == 'returning':
+
+            # If ship isn't on shipyard, keep going home
+            if ship.position != me.shipyard.position:
+                command_queue.append(
+                    ship.move(
+                        game_map.naive_navigate(ship, me.shipyard.position)
+                    )
+                )
+                break
+
+            # If ship is on shipyard, switch to exploring mode 
+            ship_dict[ship.id] = 'exploring'
+
+
+        # If ship is full, return to shipyard
+
+        if ship.halite_amount >+ constants.MAX_HALITE * .7:
+            ship_dict[ship.id] = 'returning'
+
+            command_queue.append(
+                    ship.move(
+                        game_map.naive_navigate(ship, me.shipyard.position)
+                    )
+                )
+            break
+
+
+        # If ship is on halite-rich cell, harvest it
+        if game_map[ship.position].halite_amount > 25:
+            command_queue.append(ship.stay_still())
+            break
+
+        # Explore for closest cell with a good amount of halite
+        else:
             command_queue.append(
                 ship.move(
                     random.choice([ Direction.North, Direction.South, Direction.East, Direction.West ])))
-        else:
-            command_queue.append(ship.stay_still())
 
     # If the game is in the first 200 turns and you have enough halite, spawn a ship.
     # Don't spawn a ship if you currently have a ship at port, though - the ships will collide.
