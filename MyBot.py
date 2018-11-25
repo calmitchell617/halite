@@ -3,6 +3,8 @@
 # IF enemy ship is on shipyard, kill it
 # Send em home at the end
 
+# Current version 43
+
 
 #!/usr/bin/env python3
 # Python 3.6
