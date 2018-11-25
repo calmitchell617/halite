@@ -158,7 +158,8 @@ while True:
         max_ships = ships_amount
 
     elif (
-        ships_amount < max_ships -5
+        ships_amount < max_ships - 2
+        and turns_left <= turns / 3
         and me.halite_amount >= constants.SHIP_COST 
         and not game_map[me.shipyard].is_occupied
     ):
