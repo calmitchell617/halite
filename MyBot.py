@@ -8,7 +8,7 @@ import hlt
 from hlt import constants
 
 # This library contains direction metadata to better interface with the game.
-from hlt.positionals import Direction
+from hlt.positionals import Direction, Position
 
 # This library allows you to generate random numbers.
 import random
@@ -21,10 +21,18 @@ import logging
 
 # This game object contains the initial game state.
 game = hlt.Game()
+game_map = game.game_map
 # At this point "game" variable is populated with initial map data.
 # This is a good place to do computationally expensive start-up pre-processing.
 # As soon as you call "ready" function below, the 2 second per turn timer will start.
 ship_dict = {}
+
+cells = []
+
+for i in range(game_map.width):
+    for j in range(game_map.height):
+        cells.append((i, j))
+
 game.ready("MyPythonBot")
 
 # Now that your bot is initialized, save a message to yourself in the log file with some important information.
@@ -45,13 +53,13 @@ while True:
     #   end of the turn.
     command_queue = []
 
-    for ship in me.get_ships():
+    logging.info(ship_dict)
 
-        logging.info(ship_dict)
+    for ship in me.get_ships():
 
         # If ship doesn't have a status, it must be new. Put it in the ship_dict
         if ship.id not in ship_dict:
-            ship_dict[ship.id] = None
+            ship_dict[ship.id] = 'exploring'
 
         # If ship's status is returning, keep going (unless on shipyard)
         if ship_dict[ship.id] == 'returning':
@@ -59,43 +67,43 @@ while True:
             # If ship isn't on shipyard, keep going home
             if ship.position != me.shipyard.position:
                 command_queue.append(
-                    ship.move(
-                        game_map.naive_navigate(ship, me.shipyard.position)
-                    )
-                )
-                break
+                    ship.move(game_map.naive_navigate(ship, me.shipyard.position)))
+                continue
 
             # If ship is on shipyard, switch to exploring mode 
-            ship_dict[ship.id] = 'exploring'
+            else:
+                ship_dict[ship.id] = 'exploring'
 
 
         # If ship is full, return to shipyard
 
-        if ship.halite_amount >+ constants.MAX_HALITE * .7:
+        if ship.halite_amount >= constants.MAX_HALITE * .7:
             ship_dict[ship.id] = 'returning'
 
-            command_queue.append(
-                    ship.move(
-                        game_map.naive_navigate(ship, me.shipyard.position)
-                    )
-                )
-            break
-
+            command_queue.append(ship.move(game_map.naive_navigate(ship, me.shipyard.position)))
+            continue
 
         # If ship is on halite-rich cell, harvest it
         if game_map[ship.position].halite_amount > 25:
             command_queue.append(ship.stay_still())
-            break
+            continue
 
         # Explore for closest cell with a good amount of halite
         else:
-            command_queue.append(
-                ship.move(
-                    random.choice([ Direction.North, Direction.South, Direction.East, Direction.West ])))
+            closest_cell = (None, float('inf'))
+            for cell in cells:
+                map_cell = game_map[Position(cell[0], cell[1])]
+                distance = game_map.calculate_distance(ship.position, map_cell.position)
+                halite = map_cell.halite_amount
+                if halite > 25 and distance < closest_cell[1]:
+                    closest_cell = (map_cell, distance)
+
+            command_queue.append(ship.move(game_map.naive_navigate(ship, closest_cell[0].position)))
+            continue
 
     # If the game is in the first 200 turns and you have enough halite, spawn a ship.
     # Don't spawn a ship if you currently have a ship at port, though - the ships will collide.
-    if game.turn_number <= 200 and me.halite_amount >= constants.SHIP_COST and not game_map[me.shipyard].is_occupied:
+    if game.turn_number <= 25 and me.halite_amount >= constants.SHIP_COST and not game_map[me.shipyard].is_occupied:
         command_queue.append(me.shipyard.spawn())
 
     # Send your moves back to the game environment, ending this turn.
