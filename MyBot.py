@@ -83,7 +83,7 @@ while True:
 
         distance_to_shipyard = game_map.calculate_distance(ship.position, me.shipyard.position)
 
-        if distance_to_shipyard + (len(me.get_ships()) * 2) >= turns_left:
+        if distance_to_shipyard + (len(me.get_ships()) * 1.5) >= turns_left and ship.halite_amount > 200:
             # if shipyard is next door, move to it.
             surrounding_cardinals = ship.position.get_surrounding_cardinals()
             logging.info('shipyard: {}, ship position: {}'.format(me.shipyard.position, ship.position))
