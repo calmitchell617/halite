@@ -144,8 +144,31 @@ while True:
 
     # If the game is in the first 200 turns and you have enough halite, spawn a ship.
     # Don't spawn a ship if you currently have a ship at port, though - the ships will collide.
-    if game.turn_number <= turns / 4 and me.halite_amount >= constants.SHIP_COST and not game_map[me.shipyard].is_occupied:
+    if turns_left < 50:
+        pass
+
+    try:
+        max_ships
+    except NameError:
+        max_ships = -1
+        
+    ships_amount = len(me.get_ships())
+
+    if ships_amount > max_ships:
+        max_ships = ships_amount
+
+    elif (
+        ships_amount < max_ships
+        and me.halite_amount >= constants.SHIP_COST 
+        and not game_map[me.shipyard].is_occupied
+    ):
         command_queue.append(me.shipyard.spawn())
+    elif (
+        game.turn_number <= turns / 5
+        and me.halite_amount >= constants.SHIP_COST 
+        and not game_map[me.shipyard].is_occupied
+        ):
+            command_queue.append(me.shipyard.spawn())
 
     # Send your moves back to the game environment, ending this turn.
     game.end_turn(command_queue)
