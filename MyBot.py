@@ -1,3 +1,9 @@
+# TODO
+# Create "offense" by parking a ship on the enemies shipyards.
+# IF enemy ship is on shipyard, kill it
+# Send em home at the end
+
+
 #!/usr/bin/env python3
 # Python 3.6
 
@@ -29,9 +35,23 @@ ship_dict = {}
 
 cells = []
 
-for i in range(game_map.width):
-    for j in range(game_map.height):
+width = game_map.width
+
+for i in range(width):
+    for j in range(width):
         cells.append((i, j))
+
+if width == 32:
+    turns = 401
+if width == 40:
+    turns = 426
+if width == 48:
+    turns = 451
+if width == 56:
+    turns = 476
+if width == 64:
+    turns = 501
+
 
 game.ready("MyPythonBot")
 
@@ -45,6 +65,8 @@ while True:
     # This loop handles each turn of the game. The game object changes every turn, and you refresh that state by
     #   running update_frame().
     game.update_frame()
+
+    turns_left = turns - game.turn_number
     # You extract player metadata and the updated map metadata here for convenience.
     me = game.me
     game_map = game.game_map
@@ -56,6 +78,23 @@ while True:
     logging.info(ship_dict)
 
     for ship in me.get_ships():
+
+        
+        distance_to_shipyard = game_map.calculate_distance(ship.position, me.shipyard.position)
+
+        if distance_to_shipyard + (len(me.get_ships()) * 1.2) >= turns_left:
+            # if shipyard is next door, move to it.
+            surrounding_cardinals = ship.position.get_surrounding_cardinals()
+            logging.info('{}, {}'.format(me.shipyard.position, surrounding_cardinals))
+            if me.shipyard.position in surrounding_cardinals:
+                move = game_map.get_unsafe_moves(ship.position, me.shipyard.position)[0]
+                command_queue.append(ship.move(move))
+                continue
+            # if not, naively move toward it
+            else:
+                command_queue.append(
+                    ship.move(game_map.naive_navigate(ship, me.shipyard.position)))
+                continue
 
         # If ship doesn't have a status, it must be new. Put it in the ship_dict
         if ship.id not in ship_dict:
@@ -77,14 +116,14 @@ while True:
 
         # If ship is full, return to shipyard
 
-        if ship.halite_amount >= constants.MAX_HALITE * .7:
+        if ship.halite_amount >= constants.MAX_HALITE * .9:
             ship_dict[ship.id] = 'returning'
 
             command_queue.append(ship.move(game_map.naive_navigate(ship, me.shipyard.position)))
             continue
 
         # If ship is on halite-rich cell, harvest it
-        if game_map[ship.position].halite_amount > 25:
+        if game_map[ship.position].halite_amount >= 25:
             command_queue.append(ship.stay_still())
             continue
 
@@ -95,7 +134,7 @@ while True:
                 map_cell = game_map[Position(cell[0], cell[1])]
                 distance = game_map.calculate_distance(ship.position, map_cell.position)
                 halite = map_cell.halite_amount
-                if halite > 25 and distance < closest_cell[1]:
+                if halite > 150 and distance < closest_cell[1]:
                     closest_cell = (map_cell, distance)
 
             command_queue.append(ship.move(game_map.naive_navigate(ship, closest_cell[0].position)))
@@ -103,7 +142,7 @@ while True:
 
     # If the game is in the first 200 turns and you have enough halite, spawn a ship.
     # Don't spawn a ship if you currently have a ship at port, though - the ships will collide.
-    if game.turn_number <= 25 and me.halite_amount >= constants.SHIP_COST and not game_map[me.shipyard].is_occupied:
+    if game.turn_number <= turns / 3 and me.halite_amount >= constants.SHIP_COST and not game_map[me.shipyard].is_occupied:
         command_queue.append(me.shipyard.spawn())
 
     # Send your moves back to the game environment, ending this turn.
