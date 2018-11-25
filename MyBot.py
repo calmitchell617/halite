@@ -1,9 +1,6 @@
 # TODO
 # Create "offense" by parking a ship on the enemies shipyards.
-# IF enemy ship is on shipyard, kill it
-# Send em home at the end
-
-# Current version 43
+# play "defense" enemy ship is on shipyard, kill it
 
 
 #!/usr/bin/env python3
@@ -168,8 +165,8 @@ while True:
         game.turn_number <= turns / 4
         and me.halite_amount >= constants.SHIP_COST 
         and not game_map[me.shipyard].is_occupied
-        ):
-            command_queue.append(me.shipyard.spawn())
+    ):
+        command_queue.append(me.shipyard.spawn())
 
     # Send your moves back to the game environment, ending this turn.
     game.end_turn(command_queue)
