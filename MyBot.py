@@ -164,7 +164,7 @@ while True:
     ):
         command_queue.append(me.shipyard.spawn())
     elif (
-        game.turn_number <= turns / 5
+        game.turn_number <= turns / 4
         and me.halite_amount >= constants.SHIP_COST 
         and not game_map[me.shipyard].is_occupied
         ):
