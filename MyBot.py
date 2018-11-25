@@ -158,7 +158,7 @@ while True:
         max_ships = ships_amount
 
     elif (
-        ships_amount < max_ships
+        ships_amount < max_ships -5
         and me.halite_amount >= constants.SHIP_COST 
         and not game_map[me.shipyard].is_occupied
     ):
